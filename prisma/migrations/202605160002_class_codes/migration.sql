@@ -1,0 +1,10 @@
+ALTER TABLE "Class" ADD COLUMN "code" TEXT;
+
+UPDATE "Class"
+SET "code" = 'KLS-' || UPPER(SUBSTRING(MD5("id"), 1, 6))
+WHERE "code" IS NULL;
+
+ALTER TABLE "Class" ALTER COLUMN "code" SET NOT NULL;
+CREATE UNIQUE INDEX "Class_code_key" ON "Class"("code");
+
+ALTER TABLE "ClassMember" ADD COLUMN "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

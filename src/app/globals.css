@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #fffbfb;
+  color: #1f1717;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+}
+
+::selection {
+  background: rgba(185, 28, 28, 0.16);
+  color: #7f1d1d;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@layer components {
+  .form-input {
+    @apply w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-stone-950 outline-none transition hover:border-red-200 focus:border-primary focus:ring-4 focus:ring-red-100;
+  }
+
+  .auth-screen {
+    @apply flex min-h-screen items-center justify-center bg-background;
+  }
+
+  .auth-input {
+    @apply w-full rounded-2xl border border-red-100 bg-white px-4 py-3 text-sm text-stone-950 shadow-sm shadow-red-950/5 outline-none transition placeholder:text-stone-400 hover:border-red-200 focus:border-primary focus:ring-4 focus:ring-red-100;
+  }
+
+  .auth-primary-button {
+    @apply inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-red-900/20 transition hover:bg-primary-strong focus:outline-none focus:ring-4 focus:ring-red-200 disabled:opacity-70;
+  }
+
+  .table-head {
+    @apply bg-red-50/70 text-left text-xs font-semibold uppercase tracking-normal text-red-950/60;
+  }
+
+  .table-cell {
+    @apply border-t border-border px-3 py-2 text-sm text-stone-700;
+  }
+}

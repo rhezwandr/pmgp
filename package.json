@@ -1,0 +1,63 @@
+{
+  "name": "sistem-pembelajaran-kam-lkm",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "prisma migrate reset --force",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
+    "setup:env": "node scripts/setup-env.js",
+    "setup:db": "npm run db:up && npm run prisma:migrate && npm run prisma:seed",
+    "setup": "npm run setup:env && npm run setup:db",
+    "import:students": "node --import tsx scripts/import-students.ts",
+    "delete:demo": "node --import tsx scripts/delete-demo-accounts.ts",
+    "generate:test-students": "node --import tsx scripts/generate-test-students.ts",
+    "seed:test-classes": "node --import tsx scripts/seed-test-classes.ts",
+    "setup:staging-classes": "node --import tsx scripts/setup-staging-classes.ts",
+    "cleanup:test-students": "node --import tsx scripts/cleanup-test-students.ts",
+    "simulate:test-progress": "node --import tsx scripts/simulate-test-progress.ts",
+    "reset:test-progress": "node --import tsx scripts/reset-test-progress.ts",
+    "check:production-db": "node --import tsx scripts/check-production-db.ts"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.10.0",
+    "@prisma/client": "^6.8.2",
+    "bcrypt": "^5.1.1",
+    "clsx": "^2.1.1",
+    "jspdf": "^2.5.2",
+    "lucide-react": "^0.468.0",
+    "next": "^15.3.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.56.0",
+    "recharts": "^2.15.3",
+    "xlsx": "^0.18.5",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.26.0",
+    "eslint-config-next": "^15.3.3",
+    "postcss": "^8.5.0",
+    "prisma": "^6.8.2",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.9"
+  },
+  "prisma": {
+    "seed": "node --import tsx prisma/seed.ts"
+  }
+}

@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Next.js build
+.next/
+out/
+dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript
+tsconfig.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Misc
+*.tgz
+.vercel
+
+# Data files (CSV mahasiswa, backup, dll)
+data/*.csv
+data/*.json
+backup*.sql
+*.dump
+
+# Extracted source files (not needed in production)
+public/lkm-separated-ready/
+public/lkm-separated-final/
