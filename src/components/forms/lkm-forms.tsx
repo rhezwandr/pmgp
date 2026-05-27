@@ -39,7 +39,6 @@ export function LkmSubmissionForm({ number }: { number: number }) {
       </label>
       {error && <p className="text-sm text-error">{error}</p>}
       <div className="flex gap-2">
-        <button type="button" className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50">Save answer</button>
         <button className="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-red-900/20 transition hover:bg-primary-strong">Submit LKM</button>
       </div>
     </form>
@@ -140,14 +139,6 @@ export function LkmCpaForm({ number, sections, reflectionPrompt, existingAnswer 
         <button
           type="button"
           disabled={submitting}
-          onClick={() => handleSubmit(true)}
-          className="rounded-xl border border-border px-3.5 py-2.5 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50"
-        >
-          Simpan Draft
-        </button>
-        <button
-          type="button"
-          disabled={submitting}
           onClick={() => handleSubmit(false)}
           className="rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-red-900/20 transition hover:bg-primary-strong disabled:opacity-50"
         >
@@ -190,7 +181,7 @@ export function PeerAssessmentForm({ number }: { number: number }) {
       ))}
       {error && <p className="text-sm text-error">{error}</p>}
       <div className="flex gap-2">
-        <button className="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-red-900/20 transition hover:bg-primary-strong">Save</button>
+        <button className="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-red-900/20 transition hover:bg-primary-strong">Simpan Penilaian</button>
         <button
           type="button"
           className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50"
@@ -335,14 +326,6 @@ export function LkmContentForm({ number, content, existingAnswer }: {
       {error && <p className="text-sm text-error">{error}</p>}
 
       <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={submitting}
-          onClick={() => handleSubmit(true)}
-          className="rounded-xl border border-border px-3.5 py-2.5 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50"
-        >
-          Simpan Draft
-        </button>
         <button
           type="button"
           disabled={submitting}

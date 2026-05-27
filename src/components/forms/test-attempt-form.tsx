@@ -1,9 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { formatMath } from "@/lib/math-format";
+import { seededShuffle } from "@/lib/shuffle";
+import { FullscreenButton, TestSecurityWrapper } from "./test-security-wrapper";
 
 type Question = {
   id: string;
@@ -24,13 +26,22 @@ export function TestAttemptForm({
   questions,
   durationMinutes,
   submitEndpoint,
-  resultPath
+  resultPath,
+  shuffleSeed,
+  testType = "TEST"
 }: {
   questions: Question[];
   durationMinutes: number;
   submitEndpoint: string;
   resultPath: string;
+  shuffleSeed?: string;
+  testType?: string;
 }) {
+  // Randomize question order (stable per seed)
+  const shuffledQuestions = useMemo(() => {
+    if (!shuffleSeed) return questions;
+    return seededShuffle(questions, shuffleSeed);
+  }, [questions, shuffleSeed]);
   const router = useRouter();
   const [active, setActive] = useState(0);
   const [answers, setAnswers] = useState<Record<string, AnswerKey>>({});
@@ -84,7 +95,7 @@ export function TestAttemptForm({
   const timerDisplay = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   const isLowTime = secondsLeft < 300; // < 5 minutes
 
-  const question = questions[active];
+  const question = shuffledQuestions[active];
 
   const handleSubmit = useCallback(async () => {
     setSubmitting(true);
@@ -96,7 +107,6 @@ export function TestAttemptForm({
       setSubmitting(false);
       return;
     }
-    // Clear timer from localStorage
     localStorage.removeItem(storageKey);
     router.push(resultPath);
     router.refresh();
@@ -120,10 +130,12 @@ export function TestAttemptForm({
   };
 
   return (
+    <TestSecurityWrapper testType={testType}>
+    <FullscreenButton />
     <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
       <section className="rounded-2xl border border-border bg-white p-5 shadow-subtle">
         <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
-          <p className="text-sm font-semibold text-stone-700">Soal {active + 1} dari {questions.length}</p>
+          <p className="text-sm font-semibold text-stone-700">Soal {active + 1} dari {shuffledQuestions.length}</p>
           <p className={`text-sm font-mono font-semibold ${isLowTime ? "text-red-600 animate-pulse" : "text-stone-600"}`}>⏱ {timerDisplay}</p>
         </div>
 
@@ -176,7 +188,7 @@ export function TestAttemptForm({
         {/* Navigation buttons */}
         <div className="mt-6 flex flex-wrap gap-2">
           <button type="button" className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50" disabled={active === 0 || timeExpired} onClick={() => setActive((value) => value - 1)}>Sebelumnya</button>
-          <button type="button" className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50" disabled={active === questions.length - 1 || timeExpired} onClick={() => setActive((value) => value + 1)}>Selanjutnya</button>
+          <button type="button" className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50" disabled={active === shuffledQuestions.length - 1 || timeExpired} onClick={() => setActive((value) => value + 1)}>Selanjutnya</button>
           <button
             type="button"
             disabled={submitting || timeExpired}
@@ -219,7 +231,7 @@ export function TestAttemptForm({
       <aside className="rounded-2xl border border-border bg-white p-4 shadow-subtle">
         <p className="mb-3 text-sm font-semibold text-stone-700">Navigasi Soal</p>
         <div className="grid grid-cols-5 gap-2">
-          {questions.map((item, index) => (
+          {shuffledQuestions.map((item, index) => (
             <button
               key={item.id}
               type="button"
@@ -232,5 +244,6 @@ export function TestAttemptForm({
         </div>
       </aside>
     </div>
+    </TestSecurityWrapper>
   );
 }
