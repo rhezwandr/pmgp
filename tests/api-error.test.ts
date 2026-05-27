@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 import { handleApiError } from "@/lib/api";
 
 describe("handleApiError", () => {
-  it("returns a clean database setup message when PostgreSQL is unreachable", async () => {
+  it("returns connection error message when database is unreachable", async () => {
     const response = handleApiError(new Error("Can't reach database server at `localhost:5432`"));
     const body = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(body.error).toBe("Konfigurasi database belum siap. Isi DATABASE_URL di .env, jalankan migrasi, lalu seed data.");
+    expect(response.status).toBe(503);
+    expect(body.error).toBe("Koneksi database sedang bermasalah. Silakan coba beberapa saat lagi.");
   });
 
   it("does not leak raw Prisma unique constraint messages", async () => {
@@ -24,6 +24,6 @@ describe("handleApiError", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.error).toBe("Terjadi masalah pada database. Periksa konfigurasi dan coba lagi.");
+    expect(body.error).toBe("Terjadi masalah pada sistem. Silakan coba lagi.");
   });
 });

@@ -24,16 +24,54 @@ export function handleApiError(error: unknown) {
     return jsonError(firstMessage, 422, details);
   }
   if (error instanceof Error) {
-    if (error.message.includes("DATABASE_URL") || error.message.includes("Can't reach database server")) {
-      return jsonError("Konfigurasi database belum siap. Isi DATABASE_URL di .env, jalankan migrasi, lalu seed data.", 500);
+    const msg = error.message;
+
+    // Safe server-side diagnostic (never expose to client)
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[API Error]", msg);
+    } else {
+      // Production: log category only, not full message
+      const category = classifyDatabaseError(msg);
+      if (category !== "other") {
+        console.error(`[API DB Error] category=${category} env_check: DATABASE_URL=${!!process.env.DATABASE_URL}, DIRECT_DATABASE_URL=${!!process.env.DIRECT_DATABASE_URL}, AUTH_SECRET=${!!process.env.AUTH_SECRET}`);
+      }
     }
-    if (error.message.includes("Unique constraint")) {
+
+    // A. DATABASE_URL env not set
+    if (msg.includes("DATABASE_URL") && msg.includes("environment variable")) {
+      return jsonError("Konfigurasi database belum tersedia. Hubungi administrator.", 500);
+    }
+
+    // B. Cannot connect to database (Neon cold start, network, SSL)
+    if (msg.includes("Can't reach database server") || msg.includes("Connection refused") || msg.includes("ECONNREFUSED") || msg.includes("connect ETIMEDOUT") || msg.includes("Connection terminated")) {
+      return jsonError("Koneksi database sedang bermasalah. Silakan coba beberapa saat lagi.", 503);
+    }
+
+    // C. Table/relation does not exist (migration not run)
+    if (msg.includes("does not exist") || msg.includes("relation") || msg.includes("P2021") || msg.includes("P2010")) {
+      return jsonError("Database belum selesai disiapkan. Hubungi administrator.", 500);
+    }
+
+    // D. Unique constraint violation
+    if (msg.includes("Unique constraint")) {
       return jsonError("Data sudah digunakan. Periksa kembali email, NIM, atau kode yang dimasukkan.", 409);
     }
-    if (error.message.includes("Invalid `prisma.") || error.message.includes("PrismaClient") || error.message.includes("prisma.")) {
-      return jsonError("Terjadi masalah pada database. Periksa konfigurasi dan coba lagi.", 500);
+
+    // E. Other Prisma/database errors
+    if (msg.includes("Invalid `prisma.") || msg.includes("PrismaClient")) {
+      return jsonError("Terjadi masalah pada sistem. Silakan coba lagi.", 500);
     }
-    return jsonError(error.message, 400);
+
+    // F. Application-level errors (thrown intentionally)
+    return jsonError(msg, 400);
   }
-  return jsonError("Terjadi kesalahan.", 500);
+  return jsonError("Terjadi kesalahan. Silakan coba lagi.", 500);
+}
+
+function classifyDatabaseError(msg: string): string {
+  if (msg.includes("DATABASE_URL")) return "env_missing";
+  if (msg.includes("Can't reach") || msg.includes("ECONNREFUSED") || msg.includes("ETIMEDOUT")) return "connection";
+  if (msg.includes("does not exist") || msg.includes("P2021")) return "migration";
+  if (msg.includes("PrismaClient") || msg.includes("prisma.")) return "prisma";
+  return "other";
 }
