@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { formatMath } from "@/lib/math-format";
 
@@ -35,8 +35,72 @@ export function TestAttemptForm({
   const [active, setActive] = useState(0);
   const [answers, setAnswers] = useState<Record<string, AnswerKey>>({});
   const [error, setError] = useState("");
-  const remaining = useMemo(() => `${durationMinutes}:00`, [durationMinutes]);
+  const [submitting, setSubmitting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [timeExpired, setTimeExpired] = useState(false);
+
+  // Timer — persists across refresh using localStorage
+  const storageKey = `test_start_${submitEndpoint}`;
+  const [secondsLeft, setSecondsLeft] = useState(() => {
+    if (typeof window === "undefined") return durationMinutes * 60;
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const startTime = parseInt(stored, 10);
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = durationMinutes * 60 - elapsed;
+      return remaining > 0 ? remaining : 0;
+    }
+    localStorage.setItem(storageKey, String(Date.now()));
+    return durationMinutes * 60;
+  });
+
+  useEffect(() => {
+    if (secondsLeft <= 0) {
+      setTimeExpired(true);
+      return;
+    }
+    const interval = setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setTimeExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [secondsLeft]);
+
+  // Auto-submit when time expires
+  useEffect(() => {
+    if (timeExpired && !submitting) {
+      handleSubmit();
+    }
+  }, [timeExpired]);
+
+  const minutes = Math.floor(secondsLeft / 60);
+  const seconds = secondsLeft % 60;
+  const timerDisplay = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  const isLowTime = secondsLeft < 300; // < 5 minutes
+
   const question = questions[active];
+
+  const handleSubmit = useCallback(async () => {
+    setSubmitting(true);
+    setError("");
+    const response = await fetch(submitEndpoint, { method: "POST", body: JSON.stringify({ answers }) });
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.error ?? "Gagal mengirim tes.");
+      setSubmitting(false);
+      return;
+    }
+    // Clear timer from localStorage
+    localStorage.removeItem(storageKey);
+    router.push(resultPath);
+    router.refresh();
+  }, [answers, submitEndpoint, resultPath, router, storageKey]);
 
   const options: AnswerKey[] = question.optionE ? ["A", "B", "C", "D", "E"] : ["A", "B", "C", "D"];
 
@@ -60,8 +124,15 @@ export function TestAttemptForm({
       <section className="rounded-2xl border border-border bg-white p-5 shadow-subtle">
         <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
           <p className="text-sm font-semibold text-stone-700">Soal {active + 1} dari {questions.length}</p>
-          <p className="text-sm text-muted">Timer: {remaining}</p>
+          <p className={`text-sm font-mono font-semibold ${isLowTime ? "text-red-600 animate-pulse" : "text-stone-600"}`}>⏱ {timerDisplay}</p>
         </div>
+
+        {/* Time expired overlay */}
+        {timeExpired && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 font-semibold">
+            ⏰ Waktu pengerjaan telah habis. Jawaban Anda sedang dikirim.
+          </div>
+        )}
 
         {/* Question text */}
         <p className="text-base font-semibold leading-7 text-stone-950">{formatMath(question.questionText)}</p>
@@ -104,26 +175,43 @@ export function TestAttemptForm({
 
         {/* Navigation buttons */}
         <div className="mt-6 flex flex-wrap gap-2">
-          <button type="button" className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50" disabled={active === 0} onClick={() => setActive((value) => value - 1)}>Sebelumnya</button>
-          <button type="button" className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50" disabled={active === questions.length - 1} onClick={() => setActive((value) => value + 1)}>Selanjutnya</button>
+          <button type="button" className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50" disabled={active === 0 || timeExpired} onClick={() => setActive((value) => value - 1)}>Sebelumnya</button>
+          <button type="button" className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-stone-700 transition hover:border-red-200 hover:bg-red-50 disabled:opacity-50" disabled={active === questions.length - 1 || timeExpired} onClick={() => setActive((value) => value + 1)}>Selanjutnya</button>
           <button
             type="button"
-            className="ml-auto rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-red-900/20 transition hover:bg-primary-strong"
-            onClick={async () => {
-              setError("");
-              const response = await fetch(submitEndpoint, { method: "POST", body: JSON.stringify({ answers }) });
-              const data = await response.json();
-              if (!response.ok) {
-                setError(data.error ?? "Gagal mengirim tes.");
-                return;
-              }
-              router.push(resultPath);
-              router.refresh();
-            }}
+            disabled={submitting || timeExpired}
+            className="ml-auto rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-red-900/20 transition hover:bg-primary-strong disabled:opacity-50"
+            onClick={() => setShowConfirm(true)}
           >
-            Submit
+            Submit Jawaban
           </button>
         </div>
+
+        {/* Confirmation dialog */}
+        {showConfirm && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+            <p className="font-semibold text-amber-800">Apakah Anda yakin ingin mengirim jawaban?</p>
+            <p className="mt-1 text-amber-700">Setelah dikirim, jawaban tidak dapat diubah.</p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleSubmit}
+                className="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-strong disabled:opacity-50"
+              >
+                {submitting ? "Mengirim..." : "Ya, Kirim Jawaban"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowConfirm(false)}
+                className="rounded-xl border border-border px-3 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-50"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        )}
+
         {error && <p className="mt-3 text-sm text-error">{error}</p>}
       </section>
 

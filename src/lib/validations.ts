@@ -20,8 +20,14 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
-  name: z.string().trim().min(3, "Nama minimal 3 karakter."),
-  email: z.string().trim().email("Email tidak valid."),
+  name: z.string().trim()
+    .min(3, "Nama lengkap minimal 3 karakter.")
+    .refine((val) => val.split(/\s+/).filter(Boolean).length >= 2, "Nama lengkap wajib minimal dua kata.")
+    .refine((val) => /^[\p{L}\s'-]+$/u.test(val), "Nama hanya boleh berisi huruf, spasi, dan tanda hubung."),
+  email: z.string().trim()
+    .email("Format email tidak valid.")
+    .refine((val) => !val.includes(".."), "Format email tidak valid.")
+    .refine((val) => val.includes(".") && val.split("@")[1]?.includes("."), "Email harus memiliki domain yang valid."),
   password: z.string().min(8, "Password minimal 8 karakter."),
   role: z.enum(["STUDENT", "TEACHER"], {
     required_error: "Pilih role pendaftaran."

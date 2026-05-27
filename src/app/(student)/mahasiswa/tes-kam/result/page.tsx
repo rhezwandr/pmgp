@@ -72,7 +72,8 @@ export default async function TesKamResultPage() {
         )}
       </Card>
 
-      {/* Review Table */}
+      {/* Review Table — only shown if passed */}
+      {passed && review && (
       <Card title="Review Soal KAM" description="Tinjau jawaban Anda beserta kunci dan pembahasan." className="mt-6">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -123,6 +124,7 @@ export default async function TesKamResultPage() {
           ))}
         </div>
       </Card>
+      )}
     </>
   );
 }

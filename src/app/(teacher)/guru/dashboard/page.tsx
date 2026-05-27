@@ -76,7 +76,7 @@ export default async function DashboardGuruPage() {
           <ScoreCard label="Sedang LKM" value={studentsInLkm} />
           <ScoreCard label="LKM 1-6 Selesai" value={studentsCompletedAllLkm} />
           <ScoreCard label="Selesai Post Test" value={postTestAttempts} />
-          <ScoreCard label="Progres Rata-rata" value={totalStudents > 0 ? Math.round((kamAttempts + preTestAttempts + postTestAttempts) / totalStudents / 3 * 100) : 0} />
+          <ScoreCard label="Progres Rata-rata" value={totalStudents > 0 ? Math.round(((kamAttempts + preTestAttempts + studentsCompletedAllLkm + postTestAttempts) / (totalStudents * 4)) * 100) : 0} />
         </div>
 
         {/* Class List */}
