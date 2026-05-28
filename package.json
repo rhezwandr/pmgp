@@ -25,7 +25,8 @@
     "cleanup:test-students": "node --import tsx scripts/cleanup-test-students.ts",
     "simulate:test-progress": "node --import tsx scripts/simulate-test-progress.ts",
     "reset:test-progress": "node --import tsx scripts/reset-test-progress.ts",
-    "check:production-db": "node --import tsx scripts/check-production-db.ts"
+    "check:production-db": "node --import tsx scripts/check-production-db.ts",
+    "reset:student-password": "node --import tsx scripts/reset-student-password.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

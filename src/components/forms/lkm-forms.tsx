@@ -419,12 +419,14 @@ function LkmItemRenderer({ item, value, onChange }: {
               onError={(e) => { e.currentTarget.style.display = "none"; }}
             />
           )}
-          <textarea
-            className="form-input min-h-24 text-sm"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Tuliskan jawaban Anda..."
-          />
+          <div data-answer-area>
+            <textarea
+              className="form-input min-h-24 text-sm"
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder="Tuliskan jawaban Anda..."
+            />
+          </div>
         </div>
       );
 

@@ -1,4 +1,5 @@
 import { LkmContentForm } from "@/components/forms/lkm-forms";
+import { LkmSecurityWrapper } from "@/components/forms/lkm-security-wrapper";
 import { PageHeader } from "@/components/ui";
 import { lkmContents } from "@/lib/lkm-content";
 import { requireStudentProfile } from "@/lib/route-guards";
@@ -19,11 +20,13 @@ export default async function LkmAttemptPage({ params }: { params: Promise<{ num
   return (
     <>
       <PageHeader title={content.title} description={content.focusTitle} />
-      <LkmContentForm
-        number={num}
-        content={content}
-        existingAnswer={existingAnswer}
-      />
+      <LkmSecurityWrapper lkmNumber={num}>
+        <LkmContentForm
+          number={num}
+          content={content}
+          existingAnswer={existingAnswer}
+        />
+      </LkmSecurityWrapper>
     </>
   );
 }
