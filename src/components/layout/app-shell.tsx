@@ -80,6 +80,8 @@ export function TeacherShell({ children, userName }: { children: ReactNode; user
     { href: "/guru/rekap", label: "Rekap Nilai", icon: <ClipboardList className="h-4 w-4" /> },
     { href: "/guru/progress", label: "Progress Mahasiswa", icon: <LineChart className="h-4 w-4" /> },
     { href: "/guru/feedback", label: "Feedback & Sejawat", icon: <BookOpen className="h-4 w-4" /> },
+    { href: "/guru/lkm-feedback", label: "Feedback LKM", icon: <BookOpen className="h-4 w-4" /> },
+    { href: "/guru/security-log", label: "Log Keamanan", icon: <Lock className="h-4 w-4" /> },
     { href: "/guru/laporan", label: "Laporan Pembelajaran", icon: <FileText className="h-4 w-4" /> },
     { href: "/guru/pengaturan", label: "Pengaturan", icon: <Settings className="h-4 w-4" /> }
   ];

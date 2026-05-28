@@ -109,6 +109,7 @@ export default async function DashboardGuruPage() {
           <div className="flex flex-wrap gap-2">
             <ButtonLink href="/guru/progress">Lihat Progres Mahasiswa</ButtonLink>
             <ButtonLink href="/guru/lkm-feedback">Beri Feedback LKM</ButtonLink>
+            <SecondaryLink href="/guru/security-log">Log Keamanan</SecondaryLink>
             <SecondaryLink href="/guru/feedback">Laporan Feedback Pembelajaran</SecondaryLink>
             <SecondaryLink href="/guru/rekap">Rekap Nilai</SecondaryLink>
             <SecondaryLink href="/guru/laporan">Laporan Analitik</SecondaryLink>
