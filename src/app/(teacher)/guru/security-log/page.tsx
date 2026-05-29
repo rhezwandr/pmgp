@@ -24,7 +24,21 @@ export default async function SecurityLogPage({ searchParams }: { searchParams: 
   const studentMap = new Map(students.map((s) => [s.id, s]));
 
   // Get security-related activity logs
-  const securityTypes = ["SECURITY_TAB_HIDDEN", "SECURITY_TAB_BLUR", "SECURITY_COPY_ATTEMPT", "SECURITY_PASTE_ATTEMPT", "SECURITY_RIGHT_CLICK", "SECURITY_FULLSCREEN_EXIT", "LKM_TAB_HIDDEN", "LKM_WINDOW_BLUR", "LKM_QUESTION_COPY_ATTEMPT", "LKM_QUESTION_CUT_ATTEMPT", "LKM_QUESTION_RIGHT_CLICK_ATTEMPT", "LKM_SECURITY_WARNING"];
+  const securityTypes = [
+    // KAM / Pre Test / Post Test
+    "SECURITY_TAB_HIDDEN",
+    "SECURITY_TAB_BLUR",
+    "SECURITY_COPY_ATTEMPT",
+    "SECURITY_PASTE_ATTEMPT",
+    "SECURITY_CUT_ATTEMPT",
+    "SECURITY_RIGHT_CLICK",
+    "SECURITY_FULLSCREEN_EXIT",
+    "SECURITY_WARNING",
+    // LKM
+    "LKM_QUESTION_COPY_ATTEMPT",
+    "LKM_QUESTION_CUT_ATTEMPT",
+    "LKM_QUESTION_RIGHT_CLICK_ATTEMPT",
+  ];
 
   const logs = await prisma.activityLog.findMany({
     where: {

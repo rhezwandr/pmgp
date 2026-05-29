@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type SecurityEvent = {
-  type: "TAB_BLUR" | "TAB_HIDDEN" | "COPY_ATTEMPT" | "PASTE_ATTEMPT" | "RIGHT_CLICK" | "FULLSCREEN_EXIT";
+  type: "TAB_BLUR" | "TAB_HIDDEN" | "COPY_ATTEMPT" | "PASTE_ATTEMPT" | "CUT_ATTEMPT" | "RIGHT_CLICK" | "FULLSCREEN_EXIT";
   timestamp: number;
 };
 
@@ -65,7 +65,7 @@ export function TestSecurityWrapper({ children, testType, onSecurityEvent }: Pro
     };
     const handleCut = (e: ClipboardEvent) => {
       e.preventDefault();
-      logEvent("COPY_ATTEMPT");
+      logEvent("CUT_ATTEMPT");
       showMessage("Menyalin teks tidak diperbolehkan selama pengerjaan.");
     };
 
