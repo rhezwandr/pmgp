@@ -1,14 +1,17 @@
 import { MessageReadButton } from "@/components/forms/message-read-button";
+import { MarkAllReadButton, NotificationReadButton } from "@/components/forms/notification-read-button";
 import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { prisma } from "@/lib/prisma";
 import { requireStudentProfile } from "@/lib/route-guards";
 import { getTeacherMessagesForStudent } from "@/lib/services/student-service";
+import { getNotificationsForUser } from "@/lib/services/notification-service";
 
 export default async function NotifikasiMahasiswaPage() {
-  const { student } = await requireStudentProfile();
+  const { user, student } = await requireStudentProfile();
 
-  // Get all notifications: messages + LKM feedback + teacher notes
-  const [messages, lkmFeedbacks, teacherNotes] = await Promise.all([
+  // Get all notifications: system notifications + messages + LKM feedback + teacher notes
+  const [systemNotifications, messages, lkmFeedbacks, teacherNotes] = await Promise.all([
+    getNotificationsForUser(user.id),
     getTeacherMessagesForStudent(student.id),
     prisma.teacherLkmFeedback.findMany({
       where: { studentId: student.id },
@@ -23,20 +26,66 @@ export default async function NotifikasiMahasiswaPage() {
   ]);
 
   const unreadMessages = messages.filter((m) => !m.readAt).length;
-  const totalNotifications = messages.length + lkmFeedbacks.length + teacherNotes.length;
+  const unreadNotifications = systemNotifications.filter((n) => !n.isRead).length;
+  const totalUnread = unreadMessages + unreadNotifications;
+  const totalNotifications = messages.length + lkmFeedbacks.length + teacherNotes.length + systemNotifications.length;
 
   return (
     <>
       <PageHeader
         title="Notifikasi"
-        description="Pesan, feedback LKM, dan catatan dari dosen."
-        action={<Badge tone={unreadMessages > 0 ? "warning" : "success"}>{unreadMessages} pesan baru</Badge>}
+        description="Pesan, peringatan sistem, feedback LKM, dan catatan dari dosen."
+        action={<Badge tone={totalUnread > 0 ? "warning" : "success"}>{totalUnread} belum dibaca</Badge>}
       />
 
       {totalNotifications === 0 ? (
         <EmptyState title="Belum ada notifikasi" description="Pesan dan feedback dari dosen akan tampil di sini." />
       ) : (
         <div className="grid gap-4">
+          {/* System Security Notifications */}
+          {systemNotifications.length > 0 && (
+            <Card
+              title="Peringatan Sistem"
+              description="Notifikasi otomatis dari sistem terkait aktivitas pengerjaan."
+              action={<MarkAllReadButton hasUnread={unreadNotifications > 0} />}
+            >
+              <div className="space-y-3">
+                {systemNotifications.map((notif) => (
+                  <div
+                    key={notif.id}
+                    className={`rounded-2xl border p-3 text-sm ${
+                      notif.isRead
+                        ? "border-stone-200 bg-stone-50"
+                        : "border-red-200 bg-red-50"
+                    }`}
+                  >
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span className="text-base">⚠️</span>
+                      <p className={`font-semibold ${notif.isRead ? "text-stone-700" : "text-red-800"}`}>
+                        {notif.title}
+                      </p>
+                      <Badge tone={notif.isRead ? "neutral" : "error"}>
+                        {notif.isRead ? "Dibaca" : "Baru"}
+                      </Badge>
+                      {notif.context && (
+                        <Badge tone="neutral">{notif.context.replace("_", " ")}</Badge>
+                      )}
+                    </div>
+                    <p className={`leading-relaxed ${notif.isRead ? "text-stone-600" : "text-red-700"}`}>
+                      {notif.message}
+                    </p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-muted">
+                        {notif.createdAt.toLocaleString("id-ID")}
+                      </span>
+                      <NotificationReadButton notificationId={notif.id} disabled={notif.isRead} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           {/* LKM Feedback from teacher */}
           {lkmFeedbacks.length > 0 && (
             <Card title="Feedback Dosen per LKM" description="Feedback kualitatif dari dosen untuk setiap LKM yang sudah Anda kerjakan.">

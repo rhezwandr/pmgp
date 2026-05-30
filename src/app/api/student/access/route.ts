@@ -4,6 +4,7 @@ import { handleApiError, jsonError, jsonOk } from "@/lib/api";
 import { requireStudentApi } from "@/lib/api-auth";
 import { getStudentLearningAccess } from "@/lib/learning-access";
 import { prisma } from "@/lib/prisma";
+import { checkAndCreateSecurityNotification } from "@/lib/services/notification-service";
 
 export async function GET() {
   try {
@@ -17,7 +18,7 @@ export async function GET() {
 /**
  * POST /api/student/access
  * Logs security/anti-cheat events to ActivityLog.
- * Called by TestSecurityWrapper and LkmSecurityWrapper on the frontend.
+ * After logging, checks threshold and creates internal notification if needed.
  */
 
 const ALLOWED_ACTIVITY_TYPES = new Set([
@@ -38,7 +39,7 @@ const ALLOWED_ACTIVITY_TYPES = new Set([
 
 export async function POST(request: NextRequest) {
   try {
-    const { student } = await requireStudentApi();
+    const { user, student } = await requireStudentApi();
 
     const body = await request.json();
     const activityType = typeof body.activityType === "string" ? body.activityType.trim() : "";
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
       return jsonError("Jenis aktivitas tidak valid.", 400);
     }
 
+    // Save to ActivityLog
     await prisma.activityLog.create({
       data: {
         studentId: student.id,
@@ -55,6 +57,14 @@ export async function POST(request: NextRequest) {
         description: description || activityType,
       },
     });
+
+    // Check threshold and create notification if needed (non-blocking)
+    checkAndCreateSecurityNotification(
+      student.id,
+      user.id,
+      activityType,
+      description || activityType
+    ).catch(() => {});
 
     return jsonOk({ success: true });
   } catch (error) {
