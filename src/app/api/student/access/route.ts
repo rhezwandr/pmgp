@@ -64,7 +64,9 @@ export async function POST(request: NextRequest) {
       user.id,
       activityType,
       description || activityType
-    ).catch(() => {});
+    ).catch((err) => {
+      console.error("[Security Notif]", err instanceof Error ? err.message : err);
+    });
 
     return jsonOk({ success: true });
   } catch (error) {

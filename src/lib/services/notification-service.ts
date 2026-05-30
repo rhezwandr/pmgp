@@ -143,10 +143,9 @@ export async function checkAndCreateSecurityNotification(
       },
     });
   } catch (error) {
-    // Non-critical: log but don't break the main flow
-    if (process.env.NODE_ENV !== "production") {
-      console.error("[Notification Service]", error);
-    }
+    // Log error safely (no secrets) so we can debug in Vercel logs
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    console.error(`[Notification Service] Failed to check/create notification: ${msg}`);
   }
 }
 
