@@ -369,16 +369,43 @@ export async function sendTeacherMessage(teacherId: string, studentId: string, i
 
 export async function getLaporanPembelajaran(teacherId: string) {
   const [classes, students] = await Promise.all([prisma.class.findMany({ where: { teacherId } }), getStudentOverviews(teacherId)]);
+
+  // Class chart: use consistent formula - average of KAM, Pre Test, Post Test per class
   const classChart = classes.map((classItem) => {
     const classStudents = students.filter((student) => student.classId === classItem.id);
-    return { name: classItem.name, score: average(classStudents.map((student) => student.postTest ?? student.preTest ?? student.kam)) };
+    return { name: classItem.name, score: average(classStudents.flatMap((s) => [s.kam, s.preTest, s.postTest])) };
   });
-  const weakTopicRows = await prisma.automaticFeedback.findMany({ where: { student: { class: { teacherId } } } });
-  const weakTopics = weakTopicRows.flatMap((item) => item.weakTopics);
-  const mostCommonWeakTopics = [...new Set(weakTopics)].map((topic) => ({
-    topic,
-    count: weakTopics.filter((item) => item === topic).length
-  }));
+
+  // Weak topics: calculated from actual StudentAnswer data
+  const weakTopics = await getWeakTopicsFromAnswers(teacherId);
+
+  // Students needing assistance with reasons
+  const studentsNeedingAssistance = students
+    .filter((student) => student.needsAttention)
+    .slice(0, 12)
+    .map((student) => {
+      const reasons: string[] = [];
+      if (student.kam !== null && student.kam < 70) reasons.push(`KAM ${student.kam}`);
+      if (student.kam === null) reasons.push("Belum KAM");
+      if (student.preTest !== null && student.preTest < 70) reasons.push(`Pre Test ${student.preTest}`);
+      if (student.lkmCompleted < 6) reasons.push(`LKM ${student.lkmCompleted}/6`);
+      if (student.postTest !== null && student.postTest < 70) reasons.push(`Post Test ${student.postTest}`);
+      if (student.missingFeedback) reasons.push("Refleksi belum lengkap");
+      return {
+        id: student.id,
+        name: student.name,
+        className: student.className,
+        status: student.status,
+        kam: student.kam,
+        preTest: student.preTest,
+        postTest: student.postTest,
+        lkmCompleted: student.lkmCompleted,
+        reason: reasons.length > 0 ? reasons.join(", ") : "Progress < 50%"
+      };
+    });
+
+  // Feedback summary
+  const feedbackSummary = await getFeedbackSummary(teacherId);
 
   return {
     classChart,
@@ -395,11 +422,141 @@ export async function getLaporanPembelajaran(teacherId: string) {
       { name: "LKM 5", value: Math.round((students.filter((student) => student.lkm5).length / Math.max(students.length, 1)) * 100) },
       { name: "LKM 6", value: Math.round((students.filter((student) => student.lkm6).length / Math.max(students.length, 1)) * 100) }
     ],
-    mostCommonWeakTopics: mostCommonWeakTopics.sort((a, b) => b.count - a.count).slice(0, 3),
-    studentsNeedingAssistance: students.filter((student) => student.needsAttention).slice(0, 8),
-    recommendations:
-      "Sebagian besar mahasiswa yang belum stabil perlu penguatan pada materi pemecahan masalah matematis melalui diskusi tambahan dan latihan bertahap."
+    mostCommonWeakTopics: weakTopics,
+    studentsNeedingAssistance,
+    feedbackSummary,
+    recommendations: generateRecommendations(students, weakTopics)
   };
+}
+
+/**
+ * Calculate weak topics from actual StudentAnswer data.
+ * Groups questions by topic, calculates error rate per topic.
+ */
+async function getWeakTopicsFromAnswers(teacherId: string) {
+  const answers = await prisma.studentAnswer.findMany({
+    where: {
+      student: { class: { teacherId } }
+    },
+    include: {
+      question: { select: { topic: true } }
+    }
+  });
+
+  if (answers.length === 0) return [];
+
+  // Group by topic
+  const topicStats = new Map<string, { total: number; wrong: number }>();
+  for (const answer of answers) {
+    const topic = answer.question.topic;
+    const stats = topicStats.get(topic) ?? { total: 0, wrong: 0 };
+    stats.total++;
+    if (!answer.isCorrect) stats.wrong++;
+    topicStats.set(topic, stats);
+  }
+
+  // Calculate error rate and sort
+  return Array.from(topicStats.entries())
+    .map(([topic, stats]) => ({
+      topic,
+      count: stats.wrong,
+      total: stats.total,
+      errorRate: Math.round((stats.wrong / stats.total) * 100)
+    }))
+    .filter((item) => item.total >= 5) // minimum 5 answers to be significant
+    .sort((a, b) => b.errorRate - a.errorRate)
+    .slice(0, 5);
+}
+
+/**
+ * Generate feedback summary (rating distribution + qualitative themes).
+ */
+async function getFeedbackSummary(teacherId: string) {
+  const feedbacks = await prisma.learningFeedback.findMany({
+    where: { student: { class: { teacherId } } },
+    select: { rating: true, reflectionText: true }
+  });
+
+  if (feedbacks.length === 0) {
+    return { totalResponden: 0, averageRating: 0, distribution: [], themes: [], sampleTexts: [] };
+  }
+
+  const ratings = feedbacks.map((f) => f.rating);
+  const avgRating = Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10;
+
+  // Distribution
+  const distribution = [5, 4, 3, 2, 1].map((r) => {
+    const count = ratings.filter((v) => v === r).length;
+    return { rating: r, count, percentage: Math.round((count / ratings.length) * 100) };
+  });
+
+  // Simple qualitative analysis: extract common words/themes
+  const allText = feedbacks.map((f) => f.reflectionText.toLowerCase()).join(" ");
+  const commonWords = extractCommonThemes(allText, feedbacks.length);
+
+  return {
+    totalResponden: feedbacks.length,
+    averageRating: avgRating,
+    distribution,
+    themes: commonWords,
+    sampleTexts: feedbacks.slice(0, 5).map((f) => f.reflectionText.slice(0, 200))
+  };
+}
+
+/**
+ * Simple theme extraction from feedback text.
+ */
+function extractCommonThemes(text: string, totalResponses: number): Array<{ theme: string; count: number }> {
+  const themeKeywords: Record<string, string[]> = {
+    "Membantu memahami materi": ["membantu", "paham", "mudah dipahami", "jelas", "mengerti"],
+    "Kesulitan pada materi tertentu": ["sulit", "bingung", "kesulitan", "tidak paham", "rumit"],
+    "Perlu contoh tambahan": ["contoh", "latihan", "praktik", "soal"],
+    "Menarik dan menyenangkan": ["menarik", "senang", "seru", "bagus", "keren"],
+    "Waktu kurang": ["kurang waktu", "terlalu cepat", "singkat", "terbatas"],
+    "LKM bermanfaat": ["bermanfaat", "berguna", "baik", "efektif"]
+  };
+
+  const results: Array<{ theme: string; count: number }> = [];
+  for (const [theme, keywords] of Object.entries(themeKeywords)) {
+    const count = keywords.reduce((sum, kw) => {
+      const regex = new RegExp(kw, "gi");
+      const matches = text.match(regex);
+      return sum + (matches ? matches.length : 0);
+    }, 0);
+    if (count > 0) {
+      results.push({ theme, count: Math.min(count, totalResponses) });
+    }
+  }
+
+  return results.sort((a, b) => b.count - a.count).slice(0, 5);
+}
+
+/**
+ * Generate dynamic recommendations based on actual data.
+ */
+function generateRecommendations(students: StudentOverview[], weakTopics: Array<{ topic: string; errorRate: number }>): string {
+  const parts: string[] = [];
+
+  const notPassedKam = students.filter((s) => s.kam !== null && s.kam < 70).length;
+  const kamPercent = Math.round((notPassedKam / Math.max(students.length, 1)) * 100);
+  if (kamPercent > 30) {
+    parts.push(`${kamPercent}% mahasiswa belum lulus KAM. Pertimbangkan sesi penguatan prasyarat.`);
+  }
+
+  if (weakTopics.length > 0 && weakTopics[0].errorRate > 50) {
+    parts.push(`Topik "${weakTopics[0].topic}" memiliki tingkat kesalahan ${weakTopics[0].errorRate}%. Perlu penjelasan ulang atau latihan tambahan.`);
+  }
+
+  const lowLkm = students.filter((s) => s.lkmCompleted < 3 && s.preTest !== null).length;
+  if (lowLkm > 5) {
+    parts.push(`${lowLkm} mahasiswa baru menyelesaikan kurang dari 3 LKM. Berikan motivasi dan pendampingan.`);
+  }
+
+  if (parts.length === 0) {
+    parts.push("Sebagian besar mahasiswa menunjukkan progres yang baik. Lanjutkan monitoring untuk mahasiswa yang masih tertinggal.");
+  }
+
+  return parts.join(" ");
 }
 
 export async function addTeacherNote(teacherId: string, studentId: string, input: unknown) {

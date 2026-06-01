@@ -53,7 +53,7 @@ export default async function RekapNilaiPage({ searchParams }: { searchParams: P
                         <td className="table-cell">{row.nim}</td>
                         <td className="table-cell">{row.kam ?? "-"}</td>
                         <td className="table-cell">{row.preTest ?? "-"}</td>
-                        <td className="table-cell">{[row.lkm1, row.lkm2, row.lkm3].filter(Boolean).length > 0 ? `${[row.lkm1, row.lkm2, row.lkm3].filter(Boolean).length}/6 selesai` : "Belum"}</td>
+                        <td className="table-cell">{row.lkmCompleted}/6 selesai</td>
                         <td className="table-cell">{row.averageScore > 0 ? "Sudah" : "Belum"}</td>
                         <td className="table-cell">{row.postTest ?? "-"}</td>
                         <td className="table-cell"><Badge tone={row.finalStatus === "Selesai" ? "success" : "warning"}>{row.finalStatus}</Badge></td>

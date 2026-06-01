@@ -30,6 +30,9 @@ export default async function FeedbackPembelajaranPage({ searchParams }: { searc
             <option value="1">LKM 1</option>
             <option value="2">LKM 2</option>
             <option value="3">LKM 3</option>
+            <option value="4">LKM 4</option>
+            <option value="5">LKM 5</option>
+            <option value="6">LKM 6</option>
           </select>
           <button className="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-red-900/20 transition hover:bg-primary-strong">Terapkan</button>
         </form>
@@ -46,6 +49,7 @@ export default async function FeedbackPembelajaranPage({ searchParams }: { searc
             <Metric label="Sudah mengisi" value={report.stats.studentsWithFeedback} />
             <Metric label="Belum mengisi" value={report.stats.studentsWithoutFeedback} />
           </div>
+          <p className="mb-3 text-xs text-muted">Data feedback dikumpulkan dari refleksi wajib mahasiswa setelah menyelesaikan setiap LKM. Rating 1-5.</p>
           {report.feedbackRows.length === 0 ? (
             <EmptyState title="Belum ada feedback" description="Feedback mahasiswa akan tampil setelah mereka mengisi refleksi wajib." />
           ) : (
