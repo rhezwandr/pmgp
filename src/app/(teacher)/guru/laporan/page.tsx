@@ -1,5 +1,5 @@
 import { SimpleBarChart } from "@/components/charts/score-line-chart";
-import { Badge, Card, EmptyState, PageHeader } from "@/components/ui";
+import { Badge, ButtonLink, Card, EmptyState, PageHeader } from "@/components/ui";
 import { requireTeacherProfile } from "@/lib/route-guards";
 import { getLaporanPembelajaran } from "@/lib/services/teacher-service";
 
@@ -8,7 +8,11 @@ export default async function LaporanPembelajaranPage() {
   const report = await getLaporanPembelajaran(teacher.id);
   return (
     <>
-      <PageHeader title="Laporan Pembelajaran" description="Analitik kelas, perbandingan skor, topik lemah, dan rekomendasi tindakan." />
+      <PageHeader
+        title="Laporan Pembelajaran"
+        description="Analitik kelas, perbandingan skor, topik lemah, dan rekomendasi tindakan."
+        action={<ButtonLink href="/api/teacher/laporan/export">📥 Download Laporan (Excel)</ButtonLink>}
+      />
       <div className="grid gap-4">
         <div className="grid gap-4 lg:grid-cols-2">
           <Card title="Rata-rata Skor per Kelas" description="Dihitung dari rata-rata KAM, Pre Test, dan Post Test mahasiswa per kelas.">
