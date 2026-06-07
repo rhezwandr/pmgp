@@ -80,27 +80,33 @@ export async function GET() {
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(assistData), "Perlu Bantuan");
   }
 
-  // Sheet 7: Data Lengkap Per Mahasiswa
-  const fullData = students.map((s) => ({
-    Nama: s.name,
-    NIM: s.nim,
-    Kelas: s.className,
-    "Skor KAM": s.kam ?? "-",
-    "Status KAM": s.kamStatus,
-    "Skor Pre Test": s.preTest ?? "-",
-    "LKM 1": s.lkm1 ? "Selesai" : "-",
-    "LKM 2": s.lkm2 ? "Selesai" : "-",
-    "LKM 3": s.lkm3 ? "Selesai" : "-",
-    "LKM 4": s.lkm4 ? "Selesai" : "-",
-    "LKM 5": s.lkm5 ? "Selesai" : "-",
-    "LKM 6": s.lkm6 ? "Selesai" : "-",
-    "LKM Selesai": `${s.lkmCompleted}/6`,
-    "Skor Post Test": s.postTest ?? "-",
-    "Progress (%)": s.progress,
-    Status: s.status,
-    "Perlu Bantuan": s.needsAttention ? "Ya" : "Tidak",
-  }));
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(fullData), "Data Mahasiswa");
+  // Sheets Per Kelas: Data Lengkap Mahasiswa dipisah per kelas
+  const classesSorted = [...new Set(students.map((s) => s.className))].sort();
+  for (const className of classesSorted) {
+    const classStudents = students.filter((s) => s.className === className);
+    const sheetData = classStudents.map((s, idx) => ({
+      No: idx + 1,
+      Nama: s.name,
+      NIM: s.nim,
+      "Skor KAM": s.kam ?? "",
+      "Status KAM": s.kamStatus,
+      "Skor Pre Test": s.preTest ?? "",
+      "LKM 1": s.lkm1 ? "Selesai" : "",
+      "LKM 2": s.lkm2 ? "Selesai" : "",
+      "LKM 3": s.lkm3 ? "Selesai" : "",
+      "LKM 4": s.lkm4 ? "Selesai" : "",
+      "LKM 5": s.lkm5 ? "Selesai" : "",
+      "LKM 6": s.lkm6 ? "Selesai" : "",
+      "LKM Selesai": s.lkmCompleted,
+      "Skor Post Test": s.postTest ?? "",
+      "Progress (%)": s.progress,
+      Status: s.status,
+      "Perlu Bantuan": s.needsAttention ? "Ya" : "Tidak",
+    }));
+    // Sheet name max 31 chars in Excel
+    const sheetName = className.slice(0, 31) || "Tanpa Kelas";
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(sheetData), sheetName);
+  }
 
   const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;
   return new Response(new Uint8Array(buffer), {
